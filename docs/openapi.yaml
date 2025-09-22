@@ -1,1 +1,906 @@
 # Здесь будет OpenAPI описание всех доступных эндпоинтов и моделей данных.
+
+openapi: 3.1.0
+info:
+  title: Bank_rest API
+  description: REST сервис для управления картами/пользователями
+  version: v1
+servers:
+  - url: http://localhost:8080
+    description: Generated server url
+tags:
+  - name: Cards
+    description: Операции с картами
+  - name: Authentication
+    description: API для аутентификации и получения JWT
+  - name: Users
+    description: Операции с пользователями
+  - name: Transactions
+    description: API для управления транзакциями и просмотра баланса
+paths:
+  /api/v1/user:
+    get:
+      tags:
+        - Users
+      summary: Получить список пользователей
+      description: "Параметры передаются через query: page, size, sort, name, email,\
+        \ UserRole, isActive"
+      operationId: getAllUsers
+      parameters:
+        - name: page
+          in: query
+          description: Номер страницы (0..N)
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 0
+            description: Номер страницы (0..N)
+            example: 0
+            minimum: 0
+          example: 0
+        - name: size
+          in: query
+          description: Размер страницы (1..100)
+          required: false
+          schema:
+            type: integer
+            format: int32
+            default: 20
+            description: Размер страницы (1..100)
+            example: 20
+            maximum: 100
+            minimum: 1
+          example: 20
+        - name: sort
+          in: query
+          description: "Сортировка, формат: field,asc|desc"
+          required: false
+          schema:
+            type: string
+            description: "Сортировка, формат: field,asc|desc"
+            example: "createdAt,desc"
+          example: "createdAt,desc"
+        - name: name
+          in: query
+          description: "Фильтр по имени (подстрока, регистр нечувствителен)"
+          required: false
+          schema:
+            type: string
+            description: "Фильтр по имени (подстрока, регистр нечувствителен)"
+            example: Иван
+          example: Иван
+        - name: email
+          in: query
+          description: Фильтр по email (полное или частичное совпадение)
+          required: false
+          schema:
+            type: string
+            description: Фильтр по email (полное или частичное совпадение)
+            example: ivan@example.com
+          example: ivan@example.com
+        - name: role
+          in: query
+          description: Фильтр по роли пользователя
+          required: false
+          schema:
+            type: string
+            description: Фильтр по роли пользователя
+            enum:
+              - ADMIN
+              - USER
+            example: USER
+          example: USER
+        - name: isActive
+          in: query
+          description: Фильтр по активности пользователя
+          required: false
+          schema:
+            type: boolean
+            description: Фильтр по активности пользователя
+            example: true
+          example: true
+      responses:
+        "200":
+          description: Список пользователей получен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Page"
+        "401":
+          description: Не авторизован
+        "403":
+          description: Нет прав
+      security:
+        - bearerAuth: []
+    post:
+      tags:
+        - Users
+      summary: Создать пользователя
+      operationId: createUser
+      requestBody:
+        description: Данные для создания пользователя
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserCreateDto"
+        required: true
+      responses:
+        "200":
+          description: Пользователь создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+        "400":
+          description: Некорректные данные
+        "401":
+          description: Не авторизован
+        "403":
+          description: Нет прав
+        "409":
+          description: Пользователь уже существует
+      security:
+        - bearerAuth: []
+  /api/v1/transaction:
+    post:
+      tags:
+        - Transactions
+      summary: Перевод средств между картами
+      description: Выполняет перевод денежных средств между указанными картами
+      operationId: balanceTransfer
+      requestBody:
+        description: Параметры перевода
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferDto"
+            examples:
+              Пример перевода:
+                description: Пример перевода
+                value:
+                  sourceCardId: 101
+                  destinationCardId: 202
+                  amount: 1500.0
+        required: true
+      responses:
+        "200":
+          description: Перевод выполнен успешно
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransferResultDto"
+        "400":
+          description: Неверные параметры запроса
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TransferResultDto"
+        "404":
+          description: Карта не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TransferResultDto"
+        "422":
+          description: Недостаточно средств на карте
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TransferResultDto"
+      security:
+        - bearerAuth: []
+  /api/v1/card:
+    get:
+      tags:
+        - Cards
+      summary: Получить список карт
+      description: "Параметры передаются через query: page, size, sort, userId, last4,\
+        \ status, expirationFrom, expirationTo, balanceMin, balanceMax, createdFrom,\
+        \ createdTo"
+      operationId: getAllCards
+      parameters:
+        - name: request
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/CardSearchRequest"
+      responses:
+        "200":
+          description: Список карт получен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Page"
+        "400":
+          description: Некорректные параметры
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageCardDto"
+        "401":
+          description: Не авторизован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageCardDto"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PageCardDto"
+      security:
+        - bearerAuth: []
+    post:
+      tags:
+        - Cards
+      summary: Создать карту
+      description: Создает карту для указанного пользователя
+      operationId: createCard
+      requestBody:
+        description: Данные для создания карты
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardCreateDto"
+        required: true
+      responses:
+        "200":
+          description: Карта создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardDto"
+        "400":
+          description: Некорректные данные
+        "401":
+          description: Не авторизован
+        "403":
+          description: Нет прав
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - Cards
+      summary: Частичное обновление карты
+      operationId: updateCard
+      requestBody:
+        description: Данные для обновления карты
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardUpdateDto"
+        required: true
+      responses:
+        "200":
+          description: Карта обновлена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardDto"
+        "400":
+          description: Некорректные данные
+        "404":
+          description: Карта не найдена
+      security:
+        - bearerAuth: []
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Вход в систему
+      description: Аутентифицирует пользователя по email и паролю и возвращает JWT
+      operationId: login
+      requestBody:
+        description: Учетные данные пользователя
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: Аутентификация успешна
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Неверные учётные данные
+  /api/v1/user/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Получить пользователя по ID
+      operationId: getUser
+      parameters:
+        - name: userId
+          in: path
+          description: ID пользователя
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Пользователь найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+        "401":
+          description: Не авторизован
+        "403":
+          description: Нет прав
+        "404":
+          description: Пользователь не найден
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - Users
+      summary: Удалить пользователя
+      operationId: deleteUser
+      parameters:
+        - name: userId
+          in: path
+          description: ID пользователя
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Пользователь удалён
+        "401":
+          description: Не авторизован
+        "403":
+          description: Нет прав
+        "404":
+          description: Пользователь не найден
+      security:
+        - bearerAuth: []
+    patch:
+      tags:
+        - Users
+      summary: Обновить пользователя
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          description: ID пользователя
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Данные для обновления
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdateDto"
+        required: true
+      responses:
+        "200":
+          description: Пользователь обновлён
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+        "400":
+          description: Некорректные данные
+        "401":
+          description: Не авторизован
+        "403":
+          description: Нет прав
+        "404":
+          description: Пользователь не найден
+      security:
+        - bearerAuth: []
+  /api/v1/transaction/{cardId}:
+    get:
+      tags:
+        - Transactions
+      summary: Получение баланса по ID карты
+      description: Возвращает текущий баланс карты по её идентификатору
+      operationId: getBalanceByID
+      parameters:
+        - name: cardId
+          in: path
+          description: ID карты
+          required: true
+          schema:
+            type: integer
+            format: int64
+            exclusiveMinimum: 0
+          example: 1001
+      responses:
+        "200":
+          description: Баланс успешно получен
+          content:
+            application/json:
+              schema:
+                type: number
+              example: 12345.67
+        "404":
+          description: Карта не найдена
+          content:
+            '*/*':
+              schema:
+                type: number
+      security:
+        - bearerAuth: []
+  /api/v1/transaction/number/{cardNumber}:
+    get:
+      tags:
+        - Transactions
+      summary: Получение баланса по номеру карты
+      description: Возвращает текущий баланс карты по её номеру (PAN)
+      operationId: getBalanceByNumber
+      parameters:
+        - name: cardNumber
+          in: path
+          description: Полный номер карты (PAN)
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            pattern: "\\d{16}"
+          example: 2200700000001234
+      responses:
+        "200":
+          description: Баланс успешно получен
+          content:
+            application/json:
+              schema:
+                type: number
+              example: 9876.54
+        "404":
+          description: Карта не найдена
+          content:
+            '*/*':
+              schema:
+                type: number
+      security:
+        - bearerAuth: []
+  /api/v1/card/{cardId}:
+    get:
+      tags:
+        - Cards
+      summary: Получить карту по ID
+      operationId: getCard
+      parameters:
+        - name: cardId
+          in: path
+          description: ID карты
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1001
+      responses:
+        "200":
+          description: Карта найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardDto"
+        "404":
+          description: Карта не найдена
+      security:
+        - bearerAuth: []
+    delete:
+      tags:
+        - Cards
+      summary: Удалить карту
+      operationId: deleteCard
+      parameters:
+        - name: cardId
+          in: path
+          description: ID карты
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1001
+      responses:
+        "204":
+          description: Карта удалена
+        "404":
+          description: Карта не найдена
+      security:
+        - bearerAuth: []
+  /api/v1/card/number/{cardNumber}:
+    get:
+      tags:
+        - Cards
+      summary: Получить карту по номеру
+      operationId: getCard_1
+      parameters:
+        - name: cardNumber
+          in: path
+          description: Полный номер карты (PAN)
+          required: true
+          schema:
+            type: string
+          example: 2200700000001234
+      responses:
+        "200":
+          description: Карта найдена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardDto"
+        "404":
+          description: Карта не найдена
+      security:
+        - bearerAuth: []
+components:
+  schemas:
+    UserCreateDto:
+      type: object
+      description: Запрос на создание нового пользователя
+      properties:
+        name:
+          type: string
+          description: Имя пользователя
+          example: Иван Иванов
+          minLength: 1
+        email:
+          type: string
+          format: email
+          description: Email пользователя
+          example: ivan@example.com
+          minLength: 1
+        role:
+          type: string
+          description: Роль пользователя
+          enum:
+            - ADMIN
+            - USER
+          example: ADMIN
+        userType:
+          type: string
+          description: Тип пользователя
+          enum:
+            - STANDARD
+          example: INTERNAL
+        password:
+          type: string
+          description: Пароль (будет захэширован)
+          example: P@ssw0rd123
+      required:
+        - email
+        - name
+    CardDto:
+      type: object
+      description: Карта
+      properties:
+        id:
+          type: integer
+          format: int64
+        cardNumber:
+          type: string
+          description: ID карты
+          example: 42
+        status:
+          type: string
+          description: Статус карты
+          example: "ACTIVE, BLOCKED, EXPIRED"
+        balance:
+          type: number
+          description: Баланс
+          example: 1000
+        expiration:
+          type: string
+          description: Срок действия
+          example: 2025-12-31T00:00
+    UserDto:
+      type: object
+      description: Пользователь
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: ID пользователя
+          example: 42
+        name:
+          type: string
+          description: Имя пользователя
+          example: Иван Иванов
+        email:
+          type: string
+          description: Email пользователя
+          example: ivan@example.com
+        cards:
+          type: array
+          description: Привязанные карты пользователя
+          items:
+            $ref: "#/components/schemas/CardDto"
+        role:
+          type: string
+          description: Роль пользователя
+          enum:
+            - ADMIN
+            - USER
+          example: ADMIN
+        isActive:
+          type: boolean
+          description: Флаг активности
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Дата и время создания
+          example: 2025-09-21T15:45:00
+    TransferDto:
+      type: object
+      description: Запрос на перевод средств
+      properties:
+        sourceCardId:
+          type: integer
+          format: int64
+          description: ID карты источника перевода
+          example: 1
+        destinationCardId:
+          type: integer
+          format: int64
+          description: ID карты назначения перевода
+          example: 2
+        amount:
+          type: number
+          description: Количество денежных средств для перевода
+          example: 1000
+      required:
+        - amount
+    TransferResultDto:
+      type: object
+      description: Результат перевода средств между картами
+      properties:
+        source:
+          $ref: "#/components/schemas/CardDto"
+          description: Карта-отправитель с обновлённым балансом
+        destination:
+          $ref: "#/components/schemas/CardDto"
+          description: Карта-получатель с обновлённым балансом
+    CardCreateDto:
+      type: object
+      description: Запрос на создание карты
+      properties:
+        userId:
+          type: integer
+          format: int64
+          description: ID пользователя-владельца
+          example: 42
+      required:
+        - userId
+    LoginRequest:
+      type: object
+      description: Запрос на вход
+      properties:
+        email:
+          type: string
+          description: Email пользователя
+          example: ivan@example.com
+        password:
+          type: string
+          description: Пароль пользователя
+          example: P@ssw0rd123
+    TokenResponse:
+      type: object
+      description: Ответ с JWT-токеном
+      properties:
+        token:
+          type: string
+          description: JWT-токен
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    UserUpdateDto:
+      type: object
+      description: Данные для обновления пользователя
+      properties:
+        name:
+          type: string
+          description: Имя пользователя
+          example: Андрей
+          maxLength: 100
+          minLength: 1
+        email:
+          type: string
+          format: email
+          description: Email
+          example: andrey@example.com
+          maxLength: 255
+          minLength: 0
+        role:
+          type: string
+          description: Роль пользователя
+          enum:
+            - ADMIN
+            - USER
+          example: "ADMIN, USER"
+    CardUpdateDto:
+      type: object
+      description: Данные для обновления информации о карте
+      properties:
+        cardId:
+          type: integer
+          format: int64
+          description: ID карты
+          example: 1
+        userId:
+          type: integer
+          format: int64
+          description: ID пользователя
+          example: 1
+        status:
+          type: string
+          enum:
+            - ACTIVE
+            - BLOCKED
+            - EXPIRED
+    Page:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items: {}
+        number:
+          type: integer
+          format: int32
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        numberOfElements:
+          type: integer
+          format: int32
+        first:
+          type: boolean
+        last:
+          type: boolean
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        empty:
+          type: boolean
+    PageableObject:
+      type: object
+      properties:
+        offset:
+          type: integer
+          format: int64
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        unpaged:
+          type: boolean
+        paged:
+          type: boolean
+        pageNumber:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+    SortObject:
+      type: object
+      properties:
+        empty:
+          type: boolean
+        unsorted:
+          type: boolean
+        sorted:
+          type: boolean
+    CardSearchRequest:
+      type: object
+      description: "Параметры пагинации, сортировки и фильтрации списка карт"
+      properties:
+        page:
+          type: integer
+          format: int32
+          default: 0
+          description: Номер страницы (начиная с 0)
+          example: 0
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          default: 20
+          description: Размер страницы (1..100)
+          example: 20
+          maximum: 100
+          minimum: 1
+        sort:
+          type: string
+          description: "Сортировка 'field,asc|desc;field2,asc|desc'"
+          example: "createdAt,desc;id,asc"
+        userId:
+          type: integer
+          format: int64
+          description: ID владельца (для админа)
+          example: 123
+        last4:
+          type: string
+          description: Последние 4 цифры
+          example: 1234
+          pattern: "\\d{4}"
+        status:
+          type: string
+          description: Статус
+          enum:
+            - ACTIVE
+            - BLOCKED
+            - EXPIRED
+            - INACTIVE
+          example: ACTIVE
+        expirationFrom:
+          type: string
+          format: date-time
+          description: "Срок действия: от (включительно), ISO-8601"
+          example: 2025-01-01T00:00:00
+        expirationTo:
+          type: string
+          format: date-time
+          description: "Срок действия: до (включительно), ISO-8601"
+          example: 2026-12-31T23:59:59
+        balanceMin:
+          type: number
+          description: Минимальный баланс
+          example: 0.0
+        balanceMax:
+          type: number
+          description: Максимальный баланс
+          example: 100000.0
+        createdFrom:
+          type: string
+          format: date-time
+          description: "Дата создания: с (включительно), ISO-8601"
+          example: 2024-01-01T00:00:00
+        createdTo:
+          type: string
+          format: date-time
+          description: "Дата создания: по (включительно), ISO-8601"
+          example: 2024-12-31T23:59:59
+    PageCardDto:
+      type: object
+      properties:
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/CardDto"
+        number:
+          type: integer
+          format: int32
+        sort:
+          $ref: "#/components/schemas/SortObject"
+        numberOfElements:
+          type: integer
+          format: int32
+        first:
+          type: boolean
+        last:
+          type: boolean
+        pageable:
+          $ref: "#/components/schemas/PageableObject"
+        empty:
+          type: boolean
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
