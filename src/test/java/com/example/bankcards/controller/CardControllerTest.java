@@ -109,23 +109,21 @@ class CardControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getAllCardsSuccessTest() throws Exception {
-        LocalDateTime now = LocalDateTime.of(2025, 1, 1, 12, 0);
-        CardSearchRequestDto req = new CardSearchRequestDto(
-                0, 10, "id,desc",
-                42L, "1234", CardStatus.ACTIVE,
-                null, null,
-                null, null,
-                now.minusDays(7), now
-        );
-
         CardDto cardDto = testUtils.buildActiveCardDto();
         Page<CardDto> page = new PageImpl<>(List.of(cardDto));
 
         when(cardService.getCards(any(CardSearchRequestDto.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/card")
-                        .contentType(APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sort", "id,desc")
+                        .param("userId", "42")
+                        .param("last4", "1234")
+                        .param("status", "ACTIVE")
+                        .param("createdFrom", "2024-12-25T12:00:00")
+                        .param("createdTo", "2025-01-01T12:00:00")
+                        .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1))
                 .andExpect(jsonPath("$.content[0].status").value("ACTIVE"));

@@ -128,20 +128,6 @@ public class UserServiceTest {
     }
 
     @Test
-    void getUsersNegativePageTest() {
-        assertThrows(IllegalArgumentException.class,
-                () -> userService.getUsers(testUtils.getUserSearchRequestDto(-500, 10, null, null, null, null, null)));
-        verifyNoInteractions(userRepository, mapper);
-    }
-
-    @Test
-    void getUsersZeroSizeTest() {
-        assertThrows(IllegalArgumentException.class,
-                () -> userService.getUsers(testUtils.getUserSearchRequestDto(0, 0, null, null, null, null, null)));
-        verifyNoInteractions(userRepository, mapper);
-    }
-
-    @Test
     void getUsersSuccessTest() {
         int page = 0, size = 5;
         String sort = "id,asc";

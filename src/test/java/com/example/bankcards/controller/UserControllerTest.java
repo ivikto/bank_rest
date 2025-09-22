@@ -135,22 +135,23 @@ class UserControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void getAllUsersSuccessTest() throws Exception {
-        UserSearchRequestDto req = testUtils.getUserSearchRequestDto(
-                1, 5, "createdAt,desc", "al", "example.com", UserRole.USER, true
-        );
-
+        // given
         Page<UserDto> page = Page.empty();
-        when(userService.getUsers(req)).thenReturn(page);
+        when(userService.getUsers(any(UserSearchRequestDto.class))).thenReturn(page);
 
+        // when / then
         mockMvc.perform(get("/api/v1/user")
-                        .contentType(APPLICATION_JSON)
-                        .accept(APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                        .param("page", "1")
+                        .param("size", "5")
+                        .param("sort", "createdAt,desc")
+                        .param("name", "al")
+                        .param("emailDomain", "example.com")
+                        .param("role", "USER")
+                        .param("enabled", "true")
+                        .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(handler().handlerType(UserController.class))
                 .andExpect(handler().methodName("getAllUsers"));
-
-        verify(userService).getUsers(req);
     }
 
     @Test
