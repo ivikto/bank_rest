@@ -1,24 +1,25 @@
 package com.example.bankcards.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 
-
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Objects;
 
 @Entity
 @DiscriminatorValue("STANDARD")
-@Data
-public class User extends BaseUser {
+@Getter @Setter
+@SuperBuilder
+@NoArgsConstructor
+public class StandardUser extends BaseUser {
 
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return id == user.id && Objects.equals(name, user.name) && Objects.equals(cards, user.cards) && role == user.role;
+        StandardUser standardUser = (StandardUser) o;
+        return id == standardUser.id && Objects.equals(name, standardUser.name) && Objects.equals(cards, standardUser.cards) && role == standardUser.role;
     }
 
     @Override

@@ -20,7 +20,7 @@ import java.util.Collection;
  * Генерирует AccessDeniedException, если запрос выполняется без аутентификации.
  */
 @Component
-public class TransferPolicy {
+public class SecurityUtils {
 
     /**
      * Возвращает текущий объект аутентификации из SecurityContext.

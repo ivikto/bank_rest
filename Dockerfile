@@ -1,4 +1,7 @@
-FROM ubuntu:latest
-LABEL authors="Ivikto"
+FROM openjdk:21-jdk-slim
+LABEL authors="ivikto"
 
-ENTRYPOINT ["top", "-b"]
+WORKDIR /app
+COPY ../target/bankcards-*.jar bankcards.jar
+EXPOSE 8080
+EXPOSE 5005

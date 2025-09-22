@@ -1,7 +1,7 @@
 package com.example.bankcards.exception;
 
-public class SelfTransferException extends RuntimeException {
-  public SelfTransferException(String message) {
-    super(message);
-  }
+public class TransferAccessException extends RuntimeException {
+    public TransferAccessException(String message) {
+        super(message);
+    }
 }

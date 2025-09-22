@@ -1,15 +1,15 @@
-package com.example.bankcards.util;
+package com.example.bankcards.mapper;
 
 import com.example.bankcards.dto.CardDto;
 import com.example.bankcards.dto.UserCreateDto;
 import com.example.bankcards.dto.UserDto;
-import com.example.bankcards.entity.Card;
-import com.example.bankcards.entity.User;
+import com.example.bankcards.entity.*;
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface BankMapper {
@@ -18,12 +18,17 @@ public interface BankMapper {
 
     @Mapping(target = "cardNumber",
             expression = "java(\"**** **** **** \" + card.getCardNumberLast4())")
-    @Mapping(target = "status", expression = "java(card.getStatus().name())")
+    @Mapping(target = "status", expression = "java(card.getCardStatus().name())")
     @Mapping(target = "expiration",
             expression = "java(card.getExpiration().format(MMYY))")
-    CardDto cardToCardDto(Card card);
+    CardDto cardToCardDto(BaseCard card);
+
+    @AfterMapping
+    default void fillEmptyCards(BaseUser src, @MappingTarget UserDto dto) {
+        if (dto.cards == null) dto.cards = java.util.Collections.emptyList();
+    }
 
 
-    UserDto userToUserDTO(User user);
-    User userCreateDtoToUser(UserCreateDto userDto);
+    UserDto userToUserDTO(BaseUser user);
+    StandardUser userCreateDtoToUser(UserCreateDto userDto);
 }

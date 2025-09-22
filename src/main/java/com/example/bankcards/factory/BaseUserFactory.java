@@ -1,17 +1,22 @@
 package com.example.bankcards.factory;
 
 import com.example.bankcards.dto.UserCreateDto;
+import com.example.bankcards.entity.BaseUser;
 import com.example.bankcards.entity.StandardUser;
-import com.example.bankcards.entity.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
-import static com.example.bankcards.entity.UserType.STANDARD;
+@Component
+@RequiredArgsConstructor
+public class BaseUserFactory implements UserFactory {
 
-public class StandardUserFactory implements UserFactory {
+    private final PasswordEncoder encoder;
 
     @Override
-    public User createUser(UserCreateDto userCreateDto) {
+    public BaseUser createUser(UserCreateDto userCreateDto) {
 
         return switch (userCreateDto.userType()) {
             case STANDARD -> StandardUser.builder()
@@ -21,8 +26,9 @@ public class StandardUserFactory implements UserFactory {
                     .createdAt(LocalDateTime.now())
                     .modifiedAt(LocalDateTime.now())
                     .isActive(true)
+                    .passwordHash(encoder.encode(userCreateDto.password()))
+                    .version(0L)
                     .build();
-            case PREMIUM ->
         };
     }
 }

@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class TransferPolicy {
+public class CardsPolicy {
 
     private  final SecurityUtils securityUtils;
 
