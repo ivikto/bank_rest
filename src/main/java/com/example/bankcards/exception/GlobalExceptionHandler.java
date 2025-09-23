@@ -2,16 +2,22 @@ package com.example.bankcards.exception;
 
 
 import com.example.bankcards.dto.ErrorResponseDto;
+import jakarta.persistence.LockTimeoutException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.apache.coyote.BadRequestException;
+import org.springframework.dao.CannotAcquireLockException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.transaction.TransactionTimedOutException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -177,6 +183,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<ErrorResponseDto> handleAllOtherErrors(Throwable ex, HttpServletRequest request) {
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request);
+    }
+
+    /**
+     * Exceptions of transactions
+     */
+    @ExceptionHandler({
+            LockTimeoutException.class,
+            CannotAcquireLockException.class,
+            PessimisticLockingFailureException.class,
+            TransactionTimedOutException.class
+    })
+    public ResponseEntity<ErrorResponseDto> handTransactionTimeout(RuntimeException ex, HttpServletRequest request) {
+        return buildResponse(HttpStatus.LOCKED, ex.getMessage(), request);
     }
 
     /**

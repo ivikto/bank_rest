@@ -12,18 +12,15 @@ import com.example.bankcards.service.CardService;
 import com.example.bankcards.service.TransferService;
 import com.example.bankcards.util.CardNumberCheck;
 import com.example.bankcards.util.CardsPolicy;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * Сервис переводов и получения баланса.
@@ -70,6 +67,7 @@ public class TransferServiceImpl implements TransferService {
      * </ul>
      *
      * Транзакционная граница: метод помечен {@code @Transactional}, изменения фиксируются/откатываются атомарно.
+     * Isolation.READ_COMMITTED - в рамках транзакции видны только сохраненные изменения
      *
      * @param transferDto данные перевода: ID исходной и целевой карт, сумма
      * @return результат перевода с актуальными данными обеих карт
@@ -80,21 +78,24 @@ public class TransferServiceImpl implements TransferService {
      * @throws IllegalStateException если карты не в статусе ACTIVE
      */
     @Override
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 5)
     public TransferResultDto balanceTransfer(TransferDto transferDto) {
 
-        BigDecimal amount = transferDto.amount();
-        Long sourceCardId = transferDto.sourceCardId();
-        Long destinationCardId = transferDto.destinationCardId();
+        cardsPolicy.assertNotSameCards(transferDto);
+        BigDecimal amount = transferDto.amount().setScale(2, RoundingMode.DOWN);
 
         Long currentUserId = securityUtils.currentUserId();
         log.info("Transfer started: userId={}, sourceCardId={}, destinationCardId={}, amount={}",
-                currentUserId, sourceCardId, destinationCardId, amount);
+                currentUserId, transferDto.sourceCardId(), transferDto.destinationCardId(), amount);
 
-        cardsPolicy.assertNotSameCards(transferDto);
+        Long minId = Math.min(transferDto.sourceCardId(), transferDto.destinationCardId());
+        Long maxId = Math.max(transferDto.sourceCardId(), transferDto.destinationCardId());
 
-        BaseCard sourceCard = cardService.findCardByIdForUpdate(sourceCardId);
-        BaseCard destinationCard = cardService.findCardByIdForUpdate(destinationCardId);
+        BaseCard firstCard = cardService.findCardByIdForUpdate(minId);
+        BaseCard secondCard = cardService.findCardByIdForUpdate(maxId);
+
+        BaseCard sourceCard = transferDto.sourceCardId().equals(minId) ? firstCard : secondCard;
+        BaseCard destinationCard = transferDto.destinationCardId().equals(minId) ? firstCard : secondCard;
 
         cardsPolicy.assertOwnedByUser(sourceCard, destinationCard);
         cardsPolicy.assertActive(sourceCard);

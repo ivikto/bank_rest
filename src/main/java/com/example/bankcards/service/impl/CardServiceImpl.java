@@ -327,7 +327,7 @@ public class CardServiceImpl implements CardService {
      * @param cardId ID карты
      * @throws CardNotFoundException    если карта не найдена
      */
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public BaseCard findCardByIdForUpdate(Long cardId) {
         return cardRepository.findByIdForUpdate(cardId)
